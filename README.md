@@ -12,6 +12,12 @@
 
 ---
 
+## 📺 Demo
+
+[Watch the Demo on TikTok](https://www.tiktok.com/@fxbro15/video/7606020622371622165)
+
+---
+
 ## ✨ Features
 
 | Feature | Description |
