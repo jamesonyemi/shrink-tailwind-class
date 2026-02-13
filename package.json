@@ -1,0 +1,102 @@
+{
+  "name": "shrink-tailwind-class",
+  "displayName": "Shrink Tailwind Class",
+  "description": "Extract long Tailwind CSS class lists into clean, reusable @apply utility classes",
+  "version": "0.1.0",
+  "publisher": "shrink-tailwind",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Formatters",
+    "Other"
+  ],
+  "keywords": [
+    "tailwind",
+    "tailwindcss",
+    "css",
+    "refactor",
+    "extract",
+    "apply",
+    "utility",
+    "class"
+  ],
+  "activationEvents": [
+    "onLanguage:html",
+    "onLanguage:vue",
+    "onLanguage:javascriptreact",
+    "onLanguage:typescriptreact",
+    "onLanguage:svelte",
+    "onLanguage:astro",
+    "onLanguage:php",
+    "onLanguage:erb",
+    "onLanguage:edge"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "shrinkTailwind.extractClasses",
+        "title": "Shrink Tailwind Classes: Extract to @apply"
+      },
+      {
+        "command": "shrinkTailwind.extractClassesInline",
+        "title": "Shrink Tailwind Classes: Quick Extract (no grouping)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "shrinkTailwind.extractClasses",
+        "key": "ctrl+alt+t",
+        "mac": "cmd+alt+t",
+        "when": "editorTextFocus"
+      }
+    ],
+    "configuration": {
+      "title": "Shrink Tailwind Class",
+      "properties": {
+        "shrinkTailwind.classThreshold": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "description": "Minimum number of Tailwind classes before suggesting extraction"
+        },
+        "shrinkTailwind.targetCssFile": {
+          "type": "string",
+          "default": "src/styles/components.css",
+          "description": "Relative path to the CSS file where extracted @apply rules are written"
+        },
+        "shrinkTailwind.groupByCategory": {
+          "type": "boolean",
+          "default": true,
+          "description": "Group extracted classes by category (layout, spacing, colors, etc.) with comments"
+        },
+        "shrinkTailwind.preserveStateVariants": {
+          "type": "boolean",
+          "default": false,
+          "description": "Keep state variants (hover:, focus:, etc.) inline instead of extracting them"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "test:unit": "mocha --require ts-node/register src/test/**/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint": "^8.56.0",
+    "mocha": "^10.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "@vscode/test-electron": "^2.3.8"
+  }
+}
