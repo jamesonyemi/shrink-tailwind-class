@@ -1,6 +1,6 @@
 # Architecture & Design Flow
 
-> How Shrink Tailwind Class works under the hood.
+> How Shortail works under the hood.
 
 ---
 
@@ -85,7 +85,7 @@ src/
     ├── tailwindClassParser.ts      ← Regex detection, tokenizer, categorizer
     ├── classExtractionService.ts   ← Generates @apply CSS output
     ├── documentEditService.ts      ← VS Code edits, file creation, prompts
-    └── configService.ts            ← Reads shrinkTailwind.* settings
+    └── configService.ts            ← Reads shortail.* settings
 ```
 
 ---
@@ -158,7 +158,7 @@ The parser groups Tailwind utilities into these categories (in display order):
 
 | Setting | Type | Default | Effect |
 |---------|------|---------|--------|
-| `shrinkTailwind.classThreshold` | `number` | `5` | Min classes to trigger 💡 suggestion |
-| `shrinkTailwind.targetCssFile` | `string` | `src/styles/components.css` | Default file for `@apply` rules |
-| `shrinkTailwind.groupByCategory` | `boolean` | `true` | Group output with category comments |
-| `shrinkTailwind.preserveStateVariants` | `boolean` | `false` | Keep `hover:`, `md:` etc. inline |
+| `shortail.classThreshold` | `number` | `5` | Min classes to trigger 💡 suggestion |
+| `shortail.targetCssFile` | `string` | `src/styles/components.css` | Default file for `@apply` rules |
+| `shortail.groupByCategory` | `boolean` | `true` | Group output with category comments |
+| `shortail.preserveStateVariants` | `boolean` | `false` | Keep `hover:`, `md:` etc. inline |
