@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import {
-    ShrinkTailwindCodeActionProvider,
+    ShortailCodeActionProvider,
     SUPPORTED_LANGUAGES,
 } from './codeActionProvider';
 import { registerCommands } from './commands';
@@ -10,7 +10,7 @@ import { registerCommands } from './commands';
  * Registers the Code Action provider and commands.
  */
 export function activate(context: vscode.ExtensionContext): void {
-    console.log('Shrink Tailwind Class extension is now active.');
+    console.log('Shortail extension is now active.');
 
     // ── Register Code Action Provider for all supported languages ──────
     const documentSelectors: vscode.DocumentSelector = SUPPORTED_LANGUAGES.map(
@@ -19,9 +19,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
     const codeActionProvider = vscode.languages.registerCodeActionsProvider(
         documentSelectors,
-        new ShrinkTailwindCodeActionProvider(),
+        new ShortailCodeActionProvider(),
         {
-            providedCodeActionKinds: ShrinkTailwindCodeActionProvider.providedCodeActionKinds,
+            providedCodeActionKinds: ShortailCodeActionProvider.providedCodeActionKinds,
         }
     );
 
@@ -35,9 +35,9 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.StatusBarAlignment.Right,
         100
     );
-    statusBarItem.text = '$(symbol-class) Shrink TW';
-    statusBarItem.tooltip = 'Shrink Tailwind Class — Extract utility classes';
-    statusBarItem.command = 'shrinkTailwind.extractClasses';
+    statusBarItem.text = '$(symbol-class) Shortail';
+    statusBarItem.tooltip = 'Shortail — Extract utility classes';
+    statusBarItem.command = 'shortail.extractClasses';
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
 }
@@ -46,5 +46,5 @@ export function activate(context: vscode.ExtensionContext): void {
  * Called when the extension is deactivated.
  */
 export function deactivate(): void {
-    console.log('Shrink Tailwind Class extension deactivated.');
+    console.log('Shortail extension deactivated.');
 }

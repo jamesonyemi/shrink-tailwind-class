@@ -1,4 +1,4 @@
-# Shrink Tailwind Class 🪄
+# Shortail 🪄
 
 > Extract long, unwieldy Tailwind CSS class lists into clean, reusable `@apply` utility classes — right from your editor.
 
@@ -23,7 +23,7 @@
 | Feature | Description |
 |---------|-------------|
 | **💡 Code Action (Light Bulb)** | Automatically detects long class attributes and suggests extraction |
-| **📋 Command Palette** | Run `Shrink Tailwind Classes: Extract to @apply` from anywhere |
+| **📋 Command Palette** | Run `Shortail: Extract to @apply` from anywhere |
 | **⌨️ Keyboard Shortcut** | `Ctrl+Alt+T` (Mac: `Cmd+Alt+T`) for instant extraction |
 | **🗂️ Smart Categorization** | Groups classes by purpose (Layout, Spacing, Colors, etc.) with comments |
 | **🎯 State Variant Handling** | Optionally keeps `hover:`, `focus:`, `md:` variants inline |
@@ -91,10 +91,10 @@
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `shrinkTailwind.classThreshold` | `5` | Minimum classes to trigger suggestion |
-| `shrinkTailwind.targetCssFile` | `src/styles/components.css` | Default CSS file for extracted rules |
-| `shrinkTailwind.groupByCategory` | `true` | Group classes by category with comments |
-| `shrinkTailwind.preserveStateVariants` | `false` | Keep `hover:`, `focus:`, etc. inline |
+| `shortail.classThreshold` | `5` | Minimum classes to trigger suggestion |
+| `shortail.targetCssFile` | `src/styles/components.css` | Default CSS file for extracted rules |
+| `shortail.groupByCategory` | `true` | Group classes by category with comments |
+| `shortail.preserveStateVariants` | `false` | Keep `hover:`, `focus:`, etc. inline |
 
 ---
 
@@ -110,7 +110,7 @@ HTML · JSX · TSX · Vue · Svelte · Astro · PHP · ERB · Edge
 
 ```bash
 git clone <your-repo-url>
-cd shrink-tailwind-class
+cd shortail
 npm install
 npm run compile
 ```
@@ -128,7 +128,7 @@ npx @vscode/vsce package
 ## 📂 Project Structure
 
 ```
-shrink-tailwind-class/
+shortail/
 ├── src/
 │   ├── extension.ts              # Entry point
 │   ├── codeActionProvider.ts      # Light-bulb Code Actions

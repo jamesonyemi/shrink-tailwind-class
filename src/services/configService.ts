@@ -18,19 +18,29 @@ export interface ExtensionConfig {
  * ConfigService — Reads and exposes extension configuration from VS Code settings.
  */
 export class ConfigService {
-    private static readonly SECTION = 'shrinkTailwind';
+    private static readonly SECTION = 'shortail';
 
     /**
      * Returns the current extension configuration.
      */
     static getConfig(): ExtensionConfig {
         const config = vscode.workspace.getConfiguration(ConfigService.SECTION);
+        const legacyConfig = vscode.workspace.getConfiguration('shrinkTailwind');
+
+        const getSetting = <T>(key: string, defaultValue: T): T => {
+            const currentValue = config.get<T>(key);
+            if (currentValue !== undefined) {
+                return currentValue;
+            }
+            const legacyValue = legacyConfig.get<T>(key);
+            return legacyValue !== undefined ? legacyValue : defaultValue;
+        };
 
         return {
-            classThreshold: config.get<number>('classThreshold', 5),
-            targetCssFile: config.get<string>('targetCssFile', 'src/styles/components.css'),
-            groupByCategory: config.get<boolean>('groupByCategory', true),
-            preserveStateVariants: config.get<boolean>('preserveStateVariants', false),
+            classThreshold: getSetting('classThreshold', 5),
+            targetCssFile: getSetting('targetCssFile', 'src/styles/components.css'),
+            groupByCategory: getSetting('groupByCategory', true),
+            preserveStateVariants: getSetting('preserveStateVariants', false),
         };
     }
 
