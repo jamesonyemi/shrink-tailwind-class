@@ -339,7 +339,8 @@ export class TailwindClassParser {
                     valueEndIndex: lineStartOffsets[i] + candidate.valueEndIndex,
                 };
 
-                return { parsed: converted, lineIndex: i };
+                const candidateLineIndex = documentText.slice(0, converted.fullMatchStartIndex).split('\n').length - 1;
+                return { parsed: converted, lineIndex: candidateLineIndex };
             }
         }
 

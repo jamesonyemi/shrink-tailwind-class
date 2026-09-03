@@ -162,5 +162,22 @@ suite('ClassExtractionService', () => {
 
             fs.rmSync(tempDir, { recursive: true, force: true });
         });
+
+        test('should append a rule when the selector exists only in a CSS comment', async () => {
+            const tempDir = path.join(__dirname, '..', '..', 'tmp-test-commented-selector');
+            const cssPath = path.join(tempDir, 'components.css');
+
+            fs.mkdirSync(tempDir, { recursive: true });
+            fs.writeFileSync(cssPath, '/* .btn-primary { color: red; } */\n', 'utf8');
+
+            await editService.appendToStylesheet(tempDir, 'components.css', '.btn-primary {\n  @apply flex p-4;\n}\n');
+
+            const content = fs.readFileSync(cssPath, 'utf8');
+            const contentWithoutComments = content.replace(/\/\*[\s\S]*?\*\//g, '');
+            const occurrences = (contentWithoutComments.match(/\.btn-primary\s*\{/g) || []).length;
+            assert.strictEqual(occurrences, 1);
+
+            fs.rmSync(tempDir, { recursive: true, force: true });
+        });
     });
 });

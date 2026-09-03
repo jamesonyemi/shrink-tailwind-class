@@ -85,7 +85,11 @@ export class DocumentEditService {
         const existingContent = fs.readFileSync(absolutePath, 'utf8');
         if (selector) {
             const selectorRegex = this.createSelectorBlockRegex(selector);
-            if (selectorRegex.test(existingContent)) {
+            const contentWithoutComments = existingContent.replace(
+                /\/\*[\s\S]*?\*\//g,
+                (comment) => comment.replace(/[^\r\n]/g, ' ')
+            );
+            if (selectorRegex.test(contentWithoutComments)) {
                 return absolutePath;
             }
         }

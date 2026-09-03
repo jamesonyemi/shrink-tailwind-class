@@ -85,6 +85,20 @@ suite('TailwindClassParser', () => {
             assert.strictEqual(result.parsed.classValue, 'flex p-4 bg-blue-500');
         });
 
+        test('should report the source line where a multiline candidate begins', () => {
+            const document = [
+                '<section>',
+                '  <div className={',
+                '    "flex p-4 bg-blue-500"',
+                '  }>',
+            ].join('\n');
+
+            const result = parser.findClassAttributeAtPosition(document, 2);
+
+            assert.ok(result);
+            assert.strictEqual(result.lineIndex, 1);
+        });
+
         test('should select the class attribute intersecting the requested line', () => {
             const document = [
                 '<div className="first p-4">',
