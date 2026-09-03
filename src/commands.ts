@@ -53,8 +53,9 @@ async function executeExtraction(
     const line = lineNumber ?? editor.selection.active.line;
 
     // ── Step 1: Find class attribute ────────────────────────────────────
-    const lineText = doc.lineAt(line).text;
-    const parsed = parser.findClassAttribute(lineText);
+    const docText = doc.getText();
+    const positionMatch = parser.findClassAttributeAtPosition(docText, line);
+    const parsed = positionMatch?.parsed ?? parser.findClassAttribute(doc.lineAt(line).text);
 
     if (!parsed) {
         vscode.window.showWarningMessage(
@@ -147,11 +148,16 @@ async function executeExtraction(
         ? `${className.trim()} ${preservedTokens.join(' ')}`
         : className.trim();
 
-    const success = await editService.replaceClassAttribute(
+    const rangeStart = positionMatch
+        ? doc.positionAt(parsed.valueStartIndex)
+        : new vscode.Position(line, parsed.valueStartIndex);
+    const rangeEnd = positionMatch
+        ? doc.positionAt(parsed.valueEndIndex)
+        : new vscode.Position(line, parsed.valueEndIndex);
+
+    const success = await editService.replaceClassAttributeRange(
         editor,
-        line,
-        parsed.valueStartIndex,
-        parsed.valueEndIndex,
+        new vscode.Range(rangeStart, rangeEnd),
         newClassValue
     );
 

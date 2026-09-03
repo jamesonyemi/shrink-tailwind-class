@@ -161,17 +161,20 @@ export class TailwindClassParser {
         // Patterns ordered by specificity
         const patterns: RegExp[] = [
             // JSX className with template literal: className={`...`}
-            /(?:className)\s*=\s*\{`([^`]*)`\}/,
+            /(?:className)\s*=\s*\{\s*`([\s\S]*?)`\s*\}/,
+            // JSX className with string literal inside braces: className={"..."}
+            /(?:className)\s*=\s*\{\s*"([^"]*?)"\s*\}/,
+            /(?:className)\s*=\s*\{\s*'([^']*?)'\s*\}/,
             // JSX className with string: className="..." or className='...'
-            /(?:className)\s*=\s*"([^"]*)"/,
-            /(?:className)\s*=\s*'([^']*)'/,
+            /(?:className)\s*=\s*"([^"]*?)"/,
+            /(?:className)\s*=\s*'([^']*?)'/,
             // Standard HTML class: class="..." or class='...'
-            /(?<![:\[.\w])class\s*=\s*"([^"]*)"/,
-            /(?<![:\[.\w])class\s*=\s*'([^']*)'/,
+            /(?<![:\[\.\w])class\s*=\s*"([^"]*?)"/,
+            /(?<![:\[\.\w])class\s*=\s*'([^']*?)'/,
             // Vue dynamic class: :class="..." (only simple string values)
             /:class\s*=\s*"'([^']*)'"/,
             // Angular [class]="..."
-            /\[class\]\s*=\s*"([^"]*)"/,
+            /\[class\]\s*=\s*"([^"]*?)"/,
         ];
 
         for (const pattern of patterns) {
@@ -212,23 +215,47 @@ export class TailwindClassParser {
     ): { parsed: ParsedClassAttribute; lineIndex: number } | null {
         const lines = documentText.split('\n');
 
+        const getLineStartOffset = (lineIndex: number): number => {
+            let offset = 0;
+            for (let i = 0; i < lineIndex; i++) {
+                offset += lines[i].length + 1;
+            }
+            return offset;
+        };
+
         // First try the exact line
         const currentLine = lines[lineNumber];
         if (currentLine) {
             const result = this.findClassAttribute(currentLine);
             if (result) {
-                return { parsed: result, lineIndex: lineNumber };
+                const lineStartOffset = getLineStartOffset(lineNumber);
+                return {
+                    parsed: {
+                        ...result,
+                        valueStartIndex: lineStartOffset + result.valueStartIndex,
+                        valueEndIndex: lineStartOffset + result.valueEndIndex,
+                    },
+                    lineIndex: lineNumber,
+                };
             }
         }
 
         // Try constructing multi-line by looking back up to 5 lines
         for (let startLine = Math.max(0, lineNumber - 5); startLine <= lineNumber; startLine++) {
             let combined = '';
+            let lineStartOffset = getLineStartOffset(startLine);
             for (let i = startLine; i <= Math.min(lines.length - 1, lineNumber + 5); i++) {
-                combined += (i === startLine ? '' : ' ') + lines[i].trim();
+                combined += (i === startLine ? '' : '\n') + lines[i];
                 const result = this.findClassAttribute(combined);
                 if (result) {
-                    return { parsed: result, lineIndex: startLine };
+                    return {
+                        parsed: {
+                            ...result,
+                            valueStartIndex: lineStartOffset + result.valueStartIndex,
+                            valueEndIndex: lineStartOffset + result.valueEndIndex,
+                        },
+                        lineIndex: startLine,
+                    };
                 }
             }
         }
@@ -249,9 +276,14 @@ export class TailwindClassParser {
     /**
      * Strips variant prefixes (hover:, md:, etc.) and returns the base utility.
      */
+    private normalizeClassToken(token: string): string {
+        return token.replace(/^!+/, '').trim();
+    }
+
     stripVariants(token: string): { variants: string[]; base: string } {
-        const parts = token.split(':');
-        const base = parts.pop() || token;
+        const normalized = this.normalizeClassToken(token);
+        const parts = normalized.split(':');
+        const base = parts.pop() || normalized;
         return { variants: parts, base };
     }
 
@@ -275,11 +307,18 @@ export class TailwindClassParser {
         }
 
         const { base } = this.stripVariants(token);
+        const normalizedBase = this.normalizeClassToken(base);
 
         // Check for text-color vs text-alignment/typography
         // text-{color} patterns: text-red-500, text-blue-50, text-[#fff], text-white, text-black, text-inherit, text-current, text-transparent
-        if (base.startsWith('text-')) {
-            const rest = base.slice(5);
+        if (normalizedBase.startsWith('text-')) {
+            const rest = normalizedBase.slice(5);
+
+            // Arbitrary values such as text-[18px], text-[color:var(--foo)] are typography-related.
+            if (rest.startsWith('[')) {
+                return 'Typography';
+            }
+
             // Typography text-size values: text-xs, text-sm, text-base, text-lg, text-xl, text-2xl, etc.
             const typographySizes = ['xs', 'sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl', '7xl', '8xl', '9xl'];
             // Typography text-alignment: text-left, text-center, text-right, text-justify, text-start, text-end

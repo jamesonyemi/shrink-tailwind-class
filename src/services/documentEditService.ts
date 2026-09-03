@@ -28,6 +28,14 @@ export class DocumentEditService {
             new vscode.Position(line, endChar)
         );
 
+        return this.replaceClassAttributeRange(editor, range, newClassName);
+    }
+
+    async replaceClassAttributeRange(
+        editor: vscode.TextEditor,
+        range: vscode.Range,
+        newClassName: string
+    ): Promise<boolean> {
         const success = await editor.edit((editBuilder) => {
             editBuilder.replace(range, newClassName);
         });
@@ -57,6 +65,9 @@ export class DocumentEditService {
             fs.mkdirSync(dirPath, { recursive: true });
         }
 
+        const normalizedCssContent = cssContent.trim();
+        const selector = this.extractCssSelector(normalizedCssContent);
+
         // Create with header comment if file doesn't exist
         if (!fs.existsSync(absolutePath)) {
             const header = [
@@ -68,15 +79,45 @@ export class DocumentEditService {
                 '',
             ].join('\n');
 
-            fs.writeFileSync(absolutePath, header + cssContent, 'utf8');
-        } else {
-            // Append with a separator newline
-            const existingContent = fs.readFileSync(absolutePath, 'utf8');
-            const separator = existingContent.endsWith('\n') ? '\n' : '\n\n';
-            fs.writeFileSync(absolutePath, existingContent + separator + cssContent, 'utf8');
+            fs.writeFileSync(absolutePath, header + normalizedCssContent + '\n\n', 'utf8');
+            return absolutePath;
         }
 
+        const existingContent = fs.readFileSync(absolutePath, 'utf8');
+
+        if (selector) {
+            const selectorRegex = this.createSelectorBlockRegex(selector);
+            if (selectorRegex.test(existingContent)) {
+                const updatedContent = existingContent.replace(selectorRegex, normalizedCssContent + '\n\n');
+                fs.writeFileSync(absolutePath, updatedContent, 'utf8');
+                return absolutePath;
+            }
+        }
+
+        const separator = existingContent.trim().length > 0 && !existingContent.endsWith('\n') ? '\n\n' : '\n';
+        fs.writeFileSync(
+            absolutePath,
+            existingContent + separator + normalizedCssContent + '\n\n',
+            'utf8'
+        );
+
         return absolutePath;
+    }
+
+    /**
+     * Extracts the selector name from a generated CSS rule such as .card-header {...}.
+     */
+    private extractCssSelector(cssContent: string): string | null {
+        const match = cssContent.match(/^\s*([.#][A-Za-z0-9_-]+)\s*\{/m);
+        return match ? match[1].trim() : null;
+    }
+
+    /**
+     * Creates a regex that matches a selector block in an existing stylesheet.
+     */
+    private createSelectorBlockRegex(selector: string): RegExp {
+        const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp(`(^|\\n)\\s*${escapedSelector}\\s*\\{[\\s\\S]*?\\n\\s*\\}`, 'm');
     }
 
     /**

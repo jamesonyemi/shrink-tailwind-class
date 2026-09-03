@@ -43,6 +43,20 @@ suite('TailwindClassParser', () => {
             assert.strictEqual(result.quoteChar, '`');
         });
 
+        test('should detect multiline className values inside JSX object literals', () => {
+            const result = parser.findClassAttribute('<div className={\n  "flex p-4 bg-blue-500"\n}>');
+            assert.ok(result);
+            assert.strictEqual(result.classValue, 'flex p-4 bg-blue-500');
+            assert.strictEqual(result.attributeName, 'className');
+        });
+
+        test('should detect className from the inner line of a multiline JSX object literal', () => {
+            const document = '<div className={\n  "flex p-4 bg-blue-500"\n}>\n';
+            const result = parser.findClassAttributeAtPosition(document, 1);
+            assert.ok(result);
+            assert.strictEqual(result.parsed.classValue, 'flex p-4 bg-blue-500');
+        });
+
         test('should return null for lines without class attributes', () => {
             const result = parser.findClassAttribute('<div id="main">');
             assert.strictEqual(result, null);
@@ -123,6 +137,14 @@ suite('TailwindClassParser', () => {
 
         test('should categorize "text-blue-500" as Colors', () => {
             assert.strictEqual(parser.categorizeToken('text-blue-500'), 'Colors');
+        });
+
+        test('should categorize "!text-[18px]" as Typography', () => {
+            assert.strictEqual(parser.categorizeToken('!text-[18px]'), 'Typography');
+        });
+
+        test('should categorize "!bg-red-100" as Colors', () => {
+            assert.strictEqual(parser.categorizeToken('!bg-red-100'), 'Colors');
         });
 
         test('should categorize "bg-red-100" as Colors', () => {

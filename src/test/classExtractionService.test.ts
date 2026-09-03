@@ -1,15 +1,20 @@
 import { ClassExtractionService } from '../services/classExtractionService';
 import { TailwindCategory } from '../services/tailwindClassParser';
+import { DocumentEditService } from '../services/documentEditService';
 import * as assert from 'assert';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Test suite for ClassExtractionService.
  */
 suite('ClassExtractionService', () => {
     let service: ClassExtractionService;
+    let editService: DocumentEditService;
 
     setup(() => {
         service = new ClassExtractionService();
+        editService = new DocumentEditService();
     });
 
     // ── generateApplyRule ──────────────────────────────────────────────
@@ -122,6 +127,24 @@ suite('ClassExtractionService', () => {
             const result = service.generateOutput('test', tokens, categories, true);
             // With only one category, flat output is used
             assert.ok(result.includes('@apply p-4 px-2 mt-8;'));
+        });
+    });
+
+    suite('document edits', () => {
+        test('should not append duplicate CSS rule when selector already exists', async () => {
+            const tempDir = path.join(__dirname, '..', '..', 'tmp-test-duplicate');
+            const cssPath = path.join(tempDir, 'components.css');
+
+            fs.mkdirSync(tempDir, { recursive: true });
+            fs.writeFileSync(cssPath, '.btn-primary {\n  @apply flex;\n}\n', 'utf8');
+
+            await editService.appendToStylesheet(tempDir, 'components.css', '.btn-primary {\n  @apply flex p-4;\n}\n');
+
+            const content = fs.readFileSync(cssPath, 'utf8');
+            const occurrences = (content.match(/\.btn-primary\s*\{/g) || []).length;
+            assert.strictEqual(occurrences, 1);
+
+            fs.rmSync(tempDir, { recursive: true, force: true });
         });
     });
 });
