@@ -1,6 +1,6 @@
 # Wiki: Installing and Activating Locally
 
-This guide explains how to set up, run, and install the **Shrink Tailwind Class** extension on your local machine for development or personal use.
+This guide explains how to set up, run, and install the **Shortail** extension on your local machine for development or personal use.
 
 ---
 
@@ -21,7 +21,7 @@ This is the recommended way to use and test the extension without "installing" i
 Open your terminal and run:
 ```bash
 # Navigate to the project directory
-cd c:\laragon\www\shrink-tailwind-class
+cd c:\laragon\www\shortail
 
 # Install dependencies
 npm install
@@ -62,7 +62,7 @@ We use `vsce` (Visual Studio Code Extension Manager) to create a `.vsix` file.
 # Run this in the project root
 npx @vscode/vsce package
 ```
-This will generate a file named something like `shrink-tailwind-class-0.1.0.vsix`.
+This will generate a file named something like `shortail-0.1.0.vsix`.
 
 ### 3. Install the .vsix
 1. Open VS Code.
@@ -78,9 +78,9 @@ This will generate a file named something like `shrink-tailwind-class-0.1.0.vsix
 If the light-bulb doesn't appear:
 
 1. **Check language support**: Ensure your file type is supported (HTML, JSX, TSX, Vue, etc.). Look at the bottom right corner of VS Code to see detected language.
-2. **Check the threshold**: By default, it only triggers for **5 or more** classes. You can change this in Settings → `shrinkTailwind.classThreshold`.
+2. **Check the threshold**: By default, it only triggers for **5 or more** classes. You can change this in Settings → `shortail.classThreshold`.
 3. **Cursor Position**: The cursor must be on the same line as the `class="..."` attribute.
-4. **Debug Console**: If running via **F5**, check the **Debug Console** in the *original* VS Code window for logs starting with `[ShrinkTailwind]`.
+4. **Debug Console**: If running via **F5**, check the **Debug Console** in the *original* VS Code window for logs starting with `[Shortail]`.
 
 ---
 

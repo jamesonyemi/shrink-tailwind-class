@@ -14,7 +14,7 @@ export function registerCommands(context: vscode.ExtensionContext): void {
 
     // ── Main extraction command (with categorized grouping) ──────────────
     const extractCmd = vscode.commands.registerCommand(
-        'shrinkTailwind.extractClasses',
+        'shortail.extractClasses',
         async (document?: vscode.TextDocument, lineNumber?: number) => {
             await executeExtraction(parser, extractor, editService, true, document, lineNumber);
         }
@@ -22,7 +22,7 @@ export function registerCommands(context: vscode.ExtensionContext): void {
 
     // ── Quick extraction command (flat, no grouping) ─────────────────────
     const quickExtractCmd = vscode.commands.registerCommand(
-        'shrinkTailwind.extractClassesInline',
+        'shortail.extractClassesInline',
         async (document?: vscode.TextDocument, lineNumber?: number) => {
             await executeExtraction(parser, extractor, editService, false, document, lineNumber);
         }
@@ -53,13 +53,12 @@ async function executeExtraction(
     const line = lineNumber ?? editor.selection.active.line;
 
     // ── Step 1: Find class attribute ────────────────────────────────────
-    const docText = doc.getText();
-    const positionMatch = parser.findClassAttributeAtPosition(docText, line);
-    const parsed = positionMatch?.parsed ?? parser.findClassAttribute(doc.lineAt(line).text);
+    const lineText = doc.lineAt(line).text;
+    const parsed = parser.findClassAttribute(lineText);
 
     if (!parsed) {
         vscode.window.showWarningMessage(
-            'No class attribute found on the current line. Place your cursor on a line with class="..." or className="...".'
+            'No class attribute found at the cursor location. Place your cursor on a line with class="..." or className="...".'
         );
         return;
     }
@@ -91,6 +90,13 @@ async function executeExtraction(
     if (config.preserveStateVariants) {
         extractableTokens = tokens.filter((t) => !parser.hasStateVariant(t));
         preservedTokens = tokens.filter((t) => parser.hasStateVariant(t));
+    }
+
+    if (extractableTokens.length === 0) {
+        vscode.window.showInformationMessage(
+            'No extractable Tailwind classes were found after preserving state and responsive variants.'
+        );
+        return;
     }
 
     // ── Step 4: Prompt for new class name ───────────────────────────────
@@ -157,7 +163,9 @@ async function executeExtraction(
 
     const success = await editService.replaceClassAttributeRange(
         editor,
-        new vscode.Range(rangeStart, rangeEnd),
+        line,
+        parsed.valueStartIndex,
+        parsed.valueEndIndex,
         newClassValue
     );
 

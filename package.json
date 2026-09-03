@@ -1,9 +1,9 @@
 {
-  "name": "shrink-tailwind-class",
-  "displayName": "Shrink Tailwind Class",
+  "name": "shortail",
+  "displayName": "Shortail",
   "description": "Extract long Tailwind CSS class lists into clean, reusable @apply utility classes",
   "version": "0.1.0",
-  "publisher": "shrink-tailwind",
+  "publisher": "shortail",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -21,6 +21,11 @@
     "utility",
     "class"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jamesonyemi/shrink-tailwind-class.git"
+  },
+  "license": "MIT",
   "activationEvents": [
     "onLanguage:html",
     "onLanguage:vue",
@@ -36,42 +41,42 @@
   "contributes": {
     "commands": [
       {
-        "command": "shrinkTailwind.extractClasses",
-        "title": "Shrink Tailwind Classes: Extract to @apply"
+        "command": "shortail.extractClasses",
+        "title": "Shortail: Extract to @apply"
       },
       {
-        "command": "shrinkTailwind.extractClassesInline",
-        "title": "Shrink Tailwind Classes: Quick Extract (no grouping)"
+        "command": "shortail.extractClassesInline",
+        "title": "Shortail: Quick Extract (no grouping)"
       }
     ],
     "keybindings": [
       {
-        "command": "shrinkTailwind.extractClasses",
+        "command": "shortail.extractClasses",
         "key": "ctrl+alt+t",
         "mac": "cmd+alt+t",
         "when": "editorTextFocus"
       }
     ],
     "configuration": {
-      "title": "Shrink Tailwind Class",
+      "title": "Shortail",
       "properties": {
-        "shrinkTailwind.classThreshold": {
+        "shortail.classThreshold": {
           "type": "number",
           "default": 5,
           "minimum": 1,
           "description": "Minimum number of Tailwind classes before suggesting extraction"
         },
-        "shrinkTailwind.targetCssFile": {
+        "shortail.targetCssFile": {
           "type": "string",
           "default": "src/styles/components.css",
           "description": "Relative path to the CSS file where extracted @apply rules are written"
         },
-        "shrinkTailwind.groupByCategory": {
+        "shortail.groupByCategory": {
           "type": "boolean",
           "default": true,
           "description": "Group extracted classes by category (layout, spacing, colors, etc.) with comments"
         },
-        "shrinkTailwind.preserveStateVariants": {
+        "shortail.preserveStateVariants": {
           "type": "boolean",
           "default": false,
           "description": "Keep state variants (hover:, focus:, etc.) inline instead of extracting them"
@@ -85,7 +90,7 @@
     "watch": "tsc -watch -p ./",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "test:unit": "mocha --require ts-node/register src/test/**/*.test.ts"
+    "test:unit": "mocha --ui tdd --require ts-node/register src/test/**/*.test.ts"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",

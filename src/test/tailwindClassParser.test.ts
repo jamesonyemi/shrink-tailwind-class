@@ -77,6 +77,27 @@ suite('TailwindClassParser', () => {
             assert.ok(result);
             assert.strictEqual(result.classValue, 'flex p-4');
         });
+
+        test('should detect multi-line class attribute using cursor offset', () => {
+            const documentText = `<div class="flex p-4\n  bg-blue-500\n  text-white">`;
+            const offset = documentText.indexOf('bg-blue-500');
+            const result = parser.findClassAttributeAtOffset(documentText, offset);
+
+            assert.ok(result);
+            assert.strictEqual(result.attributeName, 'class');
+            assert.ok(result.classValue.includes('bg-blue-500'));
+        });
+
+        test('should detect className template literal across multiple lines', () => {
+            const documentText = `<div className={\`flex p-4\n  bg-blue-500\`}>`;
+            const offset = documentText.indexOf('bg-blue-500');
+            const result = parser.findClassAttributeAtOffset(documentText, offset);
+
+            assert.ok(result);
+            assert.strictEqual(result.attributeName, 'className');
+            assert.strictEqual(result.quoteChar, '`');
+            assert.ok(result.classValue.includes('bg-blue-500'));
+        });
     });
 
     // ── tokenize ───────────────────────────────────────────────────────
