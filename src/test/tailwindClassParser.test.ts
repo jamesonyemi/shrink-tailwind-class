@@ -36,6 +36,20 @@ suite('TailwindClassParser', () => {
             assert.strictEqual(result.attributeName, 'className');
         });
 
+        test('should preserve exact offsets when class value is "class" or "className"', () => {
+            const classLine = '<div class="class">';
+            const classNameLine = '<div className="className">';
+            const classResult = parser.findClassAttribute(classLine);
+            const classNameResult = parser.findClassAttribute(classNameLine);
+
+            assert.ok(classResult);
+            assert.ok(classNameResult);
+            assert.strictEqual(classResult.valueStartIndex, classLine.indexOf('"class"') + 1);
+            assert.strictEqual(classResult.valueEndIndex, classResult.valueStartIndex + 'class'.length);
+            assert.strictEqual(classNameResult.valueStartIndex, classNameLine.indexOf('"className"') + 1);
+            assert.strictEqual(classNameResult.valueEndIndex, classNameResult.valueStartIndex + 'className'.length);
+        });
+
         test('should detect className={`...`} template literals in JSX', () => {
             const result = parser.findClassAttribute('<div className={`flex p-4 bg-blue-500`}>');
             assert.ok(result);
@@ -69,6 +83,30 @@ suite('TailwindClassParser', () => {
             const result = parser.findClassAttributeAtPosition(document, 1);
             assert.ok(result);
             assert.strictEqual(result.parsed.classValue, 'flex p-4 bg-blue-500');
+        });
+
+        test('should select the class attribute intersecting the requested line', () => {
+            const document = [
+                '<div className="first p-4">',
+                '<div className="second p-6">',
+            ].join('\n');
+
+            const result = parser.findClassAttributeAtPosition(document, 1);
+
+            assert.ok(result);
+            assert.strictEqual(result.parsed.classValue, 'second p-6');
+        });
+
+        test('should consider later matching attributes before rejecting the window candidate', () => {
+            const document = [
+                '<div className="first p-4">',
+                '  <span className="second p-6">',
+            ].join('\n');
+
+            const result = parser.findClassAttributeAtPosition(document, 1);
+
+            assert.ok(result);
+            assert.strictEqual(result.parsed.classValue, 'second p-6');
         });
 
         test('should return null for lines without class attributes', () => {
@@ -111,6 +149,16 @@ suite('TailwindClassParser', () => {
             assert.strictEqual(result.attributeName, 'className');
             assert.strictEqual(result.quoteChar, '`');
             assert.ok(result.classValue.includes('bg-blue-500'));
+        });
+
+        test('should preserve exact offset when class value is className', () => {
+            const documentText = '<div className="className">';
+            const valueStart = documentText.indexOf('"className"') + 1;
+            const result = parser.findClassAttributeAtOffset(documentText, valueStart);
+
+            assert.ok(result);
+            assert.strictEqual(result.valueStartIndex, valueStart);
+            assert.strictEqual(result.valueEndIndex, valueStart + 'className'.length);
         });
     });
 

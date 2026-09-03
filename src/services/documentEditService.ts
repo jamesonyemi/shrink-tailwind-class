@@ -113,7 +113,7 @@ export class DocumentEditService {
      */
     private createSelectorBlockRegex(selector: string): RegExp {
         const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        return new RegExp(`(^|\\n)\\s*${escapedSelector}\\s*\\{[\\s\\S]*?\\n\\s*\\}`, 'm');
+        return new RegExp(`(^|\\n)\\s*${escapedSelector}\\s*\\{[\\s\\S]*?\\}`, 'm');
     }
 
     /**

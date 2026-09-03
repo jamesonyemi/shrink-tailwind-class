@@ -136,7 +136,23 @@ suite('ClassExtractionService', () => {
             const cssPath = path.join(tempDir, 'components.css');
 
             fs.mkdirSync(tempDir, { recursive: true });
-            fs.writeFileSync(cssPath, '.btn-primary {\n  @apply flex;\n}\n', 'utf8');
+            fs.writeFileSync(cssPath, '.btn-primary { color: red; }\n', 'utf8');
+
+            await editService.appendToStylesheet(tempDir, 'components.css', '.btn-primary {\n  @apply flex p-4;\n}\n');
+
+            const content = fs.readFileSync(cssPath, 'utf8');
+            const occurrences = (content.match(/\.btn-primary\s*\{/g) || []).length;
+            assert.strictEqual(occurrences, 1);
+
+            fs.rmSync(tempDir, { recursive: true, force: true });
+        });
+
+        test('should not append duplicate CSS rule when multiline block has content before closing brace', async () => {
+            const tempDir = path.join(__dirname, '..', '..', 'tmp-test-duplicate-multiline');
+            const cssPath = path.join(tempDir, 'components.css');
+
+            fs.mkdirSync(tempDir, { recursive: true });
+            fs.writeFileSync(cssPath, '.btn-primary {\n  color: red;\n  padding: 1rem;\n}\n', 'utf8');
 
             await editService.appendToStylesheet(tempDir, 'components.css', '.btn-primary {\n  @apply flex p-4;\n}\n');
 

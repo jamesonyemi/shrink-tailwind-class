@@ -4,6 +4,8 @@
 export interface ParsedClassAttribute {
     /** The full matched class attribute string, e.g. class="flex p-4 ..." */
     fullMatch: string;
+    /** Start index of the full matched attribute in the searched text */
+    fullMatchStartIndex: number;
     /** The class value string without quotes, e.g. "flex p-4 ..." */
     classValue: string;
     /** Start index of the class value within the line */
@@ -33,6 +35,10 @@ export type TailwindCategory =
     | 'Interactivity'
     | 'States'
     | 'Other';
+
+type MatchWithIndices = RegExpExecArray & {
+    indices?: Array<[number, number] | undefined>;
+};
 
 /**
  * Mapping of Tailwind class prefixes to their categories.
@@ -158,6 +164,10 @@ export class TailwindClassParser {
      *           className={`...`}, :class="...", [class]="..."
      */
     findClassAttribute(line: string): ParsedClassAttribute | null {
+        return this.findClassAttributeCandidates(line)[0] ?? null;
+    }
+
+    private findClassAttributeCandidates(line: string): ParsedClassAttribute[] {
         const patterns = [
             {
                 regex: /(?:className)\s*=\s*\{\s*`([^`]*)`\s*\}/g,
@@ -197,12 +207,16 @@ export class TailwindClassParser {
             },
         ];
 
-        for (const { regex, attributeName } of patterns) {
-            regex.lastIndex = 0;
-            let match: RegExpExecArray | null;
+        const candidates: ParsedClassAttribute[] = [];
 
-            while ((match = regex.exec(line)) !== null) {
-                if (!match[1]) {
+        for (const { regex, attributeName } of patterns) {
+            const indexedRegex = new RegExp(regex.source, 'gd');
+            indexedRegex.lastIndex = 0;
+            let match: MatchWithIndices | null;
+
+            while ((match = indexedRegex.exec(line) as MatchWithIndices | null) !== null) {
+                const captureRange = match.indices?.[1];
+                if (!match[1] || !captureRange) {
                     continue;
                 }
 
@@ -212,21 +226,22 @@ export class TailwindClassParser {
                 }
 
                 const fullMatch = match[0];
-                const valueStartIndex = match.index + fullMatch.indexOf(match[1]);
-                const valueEndIndex = valueStartIndex + match[1].length;
+                const valueStartIndex = captureRange[0];
+                const valueEndIndex = captureRange[1];
 
-                return {
+                candidates.push({
                     fullMatch,
+                    fullMatchStartIndex: match.index,
                     classValue,
                     valueStartIndex,
                     valueEndIndex,
                     attributeName,
                     quoteChar: fullMatch.includes('`') ? '`' : fullMatch.includes("'") ? "'" : '"',
-                };
+                });
             }
         }
 
-        return null;
+        return candidates.sort((left, right) => left.fullMatchStartIndex - right.fullMatchStartIndex);
     }
 
     findClassAttributeAtOffset(documentText: string, offset: number): ParsedClassAttribute | null {
@@ -243,16 +258,18 @@ export class TailwindClassParser {
         ];
 
         for (const pattern of patterns) {
-            pattern.lastIndex = 0;
-            let match: RegExpExecArray | null;
+            const indexedPattern = new RegExp(pattern.source, 'gd');
+            indexedPattern.lastIndex = 0;
+            let match: MatchWithIndices | null;
 
-            while ((match = pattern.exec(documentText)) !== null) {
-                if (!match[1]) {
+            while ((match = indexedPattern.exec(documentText) as MatchWithIndices | null) !== null) {
+                const captureRange = match.indices?.[1];
+                if (!match[1] || !captureRange) {
                     continue;
                 }
 
-                const valueStartIndex = match.index + match[0].indexOf(match[1]);
-                const valueEndIndex = valueStartIndex + match[1].length;
+                const valueStartIndex = captureRange[0];
+                const valueEndIndex = captureRange[1];
 
                 if (offset < valueStartIndex || offset > valueEndIndex) {
                     continue;
@@ -267,6 +284,7 @@ export class TailwindClassParser {
 
                 return {
                     fullMatch,
+                    fullMatchStartIndex: match.index,
                     classValue,
                     valueStartIndex,
                     valueEndIndex,
@@ -302,18 +320,27 @@ export class TailwindClassParser {
                 combined += lines[j];
             }
 
-            const result = this.findClassAttribute(combined);
-            if (!result) {
-                continue;
+            const candidates = this.findClassAttributeCandidates(combined);
+            const requestedLineStart = lineStartOffsets[lineNumber];
+            const requestedLineEnd = requestedLineStart + lines[lineNumber].length;
+
+            for (const candidate of candidates) {
+                const candidateStart = lineStartOffsets[i] + candidate.fullMatchStartIndex;
+                const candidateEnd = candidateStart + candidate.fullMatch.length;
+
+                if (candidateEnd < requestedLineStart || candidateStart > requestedLineEnd) {
+                    continue;
+                }
+
+                const converted: ParsedClassAttribute = {
+                    ...candidate,
+                    fullMatchStartIndex: candidateStart,
+                    valueStartIndex: lineStartOffsets[i] + candidate.valueStartIndex,
+                    valueEndIndex: lineStartOffsets[i] + candidate.valueEndIndex,
+                };
+
+                return { parsed: converted, lineIndex: i };
             }
-
-            const converted: ParsedClassAttribute = {
-                ...result,
-                valueStartIndex: lineStartOffsets[i] + result.valueStartIndex,
-                valueEndIndex: lineStartOffsets[i] + result.valueEndIndex,
-            };
-
-            return { parsed: converted, lineIndex: i };
         }
 
         return null;
