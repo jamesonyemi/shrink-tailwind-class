@@ -17,7 +17,9 @@ export class DocumentEditService {
      */
     async replaceClassAttribute(
         editor: vscode.TextEditor,
-        range: vscode.Range,
+        line: number,
+        startChar: number,
+        endChar: number,
         newClassName: string
     ): Promise<boolean> {
         const range = new vscode.Range(
@@ -25,9 +27,19 @@ export class DocumentEditService {
             new vscode.Position(line, endChar)
         );
 
+        return this.replaceClassAttributeRange(editor, range, newClassName);
+    }
+
+    async replaceClassAttributeRange(
+        editor: vscode.TextEditor,
+        range: vscode.Range,
+        newClassName: string
+    ): Promise<boolean> {
         const success = await editor.edit((editBuilder) => {
             editBuilder.replace(range, newClassName);
         });
+
+        return success;
     }
 
     /**
@@ -52,6 +64,9 @@ export class DocumentEditService {
             fs.mkdirSync(dirPath, { recursive: true });
         }
 
+        const normalizedCssContent = cssContent.trim();
+        const selector = this.extractCssSelector(normalizedCssContent);
+
         // Create with header comment if file doesn't exist
         if (!fs.existsSync(absolutePath)) {
             const header = [
@@ -63,13 +78,24 @@ export class DocumentEditService {
                 '',
             ].join('\n');
 
-            fs.writeFileSync(absolutePath, header + cssContent, 'utf8');
-        } else {
-            // Append with a separator newline
-            const existingContent = fs.readFileSync(absolutePath, 'utf8');
-            const separator = existingContent.endsWith('\n') ? '\n' : '\n\n';
-            fs.writeFileSync(absolutePath, existingContent + separator + cssContent, 'utf8');
+            fs.writeFileSync(absolutePath, header + normalizedCssContent + '\n\n', 'utf8');
+            return absolutePath;
         }
+
+        const existingContent = fs.readFileSync(absolutePath, 'utf8');
+        if (selector) {
+            const selectorRegex = this.createSelectorBlockRegex(selector);
+            if (selectorRegex.test(existingContent)) {
+                return absolutePath;
+            }
+        }
+
+        const separator = existingContent.length > 0 && !existingContent.endsWith('\n') ? '\n\n' : '\n';
+        fs.writeFileSync(
+            absolutePath,
+            existingContent + separator + normalizedCssContent + '\n\n',
+            'utf8'
+        );
 
         return absolutePath;
     }

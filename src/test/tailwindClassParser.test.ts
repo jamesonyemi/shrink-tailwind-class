@@ -50,6 +50,20 @@ suite('TailwindClassParser', () => {
             assert.strictEqual(result.attributeName, 'className');
         });
 
+        test('should detect className={ "..." } with whitespace inside braces', () => {
+            const result = parser.findClassAttribute('<div className={ "flex p-4 bg-blue-500" }>');
+            assert.ok(result);
+            assert.strictEqual(result.classValue, 'flex p-4 bg-blue-500');
+            assert.strictEqual(result.attributeName, 'className');
+        });
+
+        test("should detect className={ '...' } with whitespace inside braces", () => {
+            const result = parser.findClassAttribute("<div className={ 'flex p-4 bg-blue-500' }>");
+            assert.ok(result);
+            assert.strictEqual(result.classValue, 'flex p-4 bg-blue-500');
+            assert.strictEqual(result.attributeName, 'className');
+        });
+
         test('should detect className from the inner line of a multiline JSX object literal', () => {
             const document = '<div className={\n  "flex p-4 bg-blue-500"\n}>\n';
             const result = parser.findClassAttributeAtPosition(document, 1);

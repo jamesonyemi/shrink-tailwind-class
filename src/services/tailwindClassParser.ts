@@ -158,28 +158,51 @@ export class TailwindClassParser {
      *           className={`...`}, :class="...", [class]="..."
      */
     findClassAttribute(line: string): ParsedClassAttribute | null {
-        // Patterns ordered by specificity
-        const patterns: RegExp[] = [
-            // JSX className with template literal: className={`...`}
-            /(?:className)\s*=\s*\{`([^`]*)`\}/,
-            // JSX className with string: className="..." or className='...'
-            /(?:className)\s*=\s*"([^"]*)"/,
-            /(?:className)\s*=\s*'([^']*)'/,
-            // Standard HTML class: class="..." or class='...'
-            /(?<![:\[.\w])class\s*=\s*"([^"]*)"/,
-            /(?<![:\[.\w])class\s*=\s*'([^']*)'/,
-            // Vue dynamic class: :class="..." (only simple string values)
-            /:class\s*=\s*"'([^']*)'"/,
-            // Angular [class]="..."
-            /\[class\]\s*=\s*"([^"]*)"/,
+        const patterns = [
+            {
+                regex: /(?:className)\s*=\s*\{\s*`([^`]*)`\s*\}/g,
+                attributeName: 'className',
+            },
+            {
+                regex: /(?:className)\s*=\s*\{\s*"([^"]*)"\s*\}/g,
+                attributeName: 'className',
+            },
+            {
+                regex: /(?:className)\s*=\s*\{\s*'([^']*)'\s*\}/g,
+                attributeName: 'className',
+            },
+            {
+                regex: /(?:className)\s*=\s*"([^"]*)"/g,
+                attributeName: 'className',
+            },
+            {
+                regex: /(?:className)\s*=\s*'([^']*)'/g,
+                attributeName: 'className',
+            },
+            {
+                regex: /(?<![:\[\.\w])class\s*=\s*"([^"]*)"/g,
+                attributeName: 'class',
+            },
+            {
+                regex: /(?<![:\[\.\w])class\s*=\s*'([^']*)'/g,
+                attributeName: 'class',
+            },
+            {
+                regex: /:class\s*=\s*"'([^']*)'"/g,
+                attributeName: 'class',
+            },
+            {
+                regex: /\[class\]\s*=\s*"([^"]*)"/g,
+                attributeName: 'class',
+            },
         ];
 
         for (const { regex, attributeName } of patterns) {
             regex.lastIndex = 0;
             let match: RegExpExecArray | null;
 
-            while ((match = regex.exec(text)) !== null) {
-                if (match[1] === undefined) {
+            while ((match = regex.exec(line)) !== null) {
+                if (!match[1]) {
                     continue;
                 }
 
@@ -192,24 +215,13 @@ export class TailwindClassParser {
                 const valueStartIndex = match.index + fullMatch.indexOf(match[1]);
                 const valueEndIndex = valueStartIndex + match[1].length;
 
-                const matchedOffset = offset !== undefined && offset >= match.index && offset <= match.index + fullMatch.length;
-                if (offset !== undefined && !matchedOffset) {
-                    const offsetLine = text.slice(0, offset).split('\n').length - 1;
-                    const matchLine = text.slice(0, match.index).split('\n').length - 1;
-                    if (offsetLine !== matchLine) {
-                        continue;
-                    }
-                }
-
-                const quoteChar = fullMatch.includes('`') ? '`' : fullMatch.includes("'") ? "'" : '"';
-
                 return {
                     fullMatch,
                     classValue,
                     valueStartIndex,
                     valueEndIndex,
                     attributeName,
-                    quoteChar,
+                    quoteChar: fullMatch.includes('`') ? '`' : fullMatch.includes("'") ? "'" : '"',
                 };
             }
         }
@@ -217,34 +229,91 @@ export class TailwindClassParser {
         return null;
     }
 
-    /**
-     * Finds the class attribute across multiple lines based on a cursor line number.
-     */
+    findClassAttributeAtOffset(documentText: string, offset: number): ParsedClassAttribute | null {
+        const patterns = [
+            /(?:className)\s*=\s*\{\s*`([^`]*)`\s*\}/g,
+            /(?:className)\s*=\s*\{\s*"([^"]*)"\s*\}/g,
+            /(?:className)\s*=\s*\{\s*'([^']*)'\s*\}/g,
+            /(?:className)\s*=\s*"([^"]*)"/g,
+            /(?:className)\s*=\s*'([^']*)'/g,
+            /(?<![:\[\.\w])class\s*=\s*"([^"]*)"/g,
+            /(?<![:\[\.\w])class\s*=\s*'([^']*)'/g,
+            /:class\s*=\s*"'([^']*)'"/g,
+            /\[class\]\s*=\s*"([^"]*)"/g,
+        ];
+
+        for (const pattern of patterns) {
+            pattern.lastIndex = 0;
+            let match: RegExpExecArray | null;
+
+            while ((match = pattern.exec(documentText)) !== null) {
+                if (!match[1]) {
+                    continue;
+                }
+
+                const valueStartIndex = match.index + match[0].indexOf(match[1]);
+                const valueEndIndex = valueStartIndex + match[1].length;
+
+                if (offset < valueStartIndex || offset > valueEndIndex) {
+                    continue;
+                }
+
+                const fullMatch = match[0];
+                const attributeName = fullMatch.includes('className') ? 'className' : 'class';
+                const classValue = match[1].trim();
+                if (classValue.length === 0) {
+                    continue;
+                }
+
+                return {
+                    fullMatch,
+                    classValue,
+                    valueStartIndex,
+                    valueEndIndex,
+                    attributeName,
+                    quoteChar: fullMatch.includes('`') ? '`' : fullMatch.includes("'") ? "'" : '"',
+                };
+            }
+        }
+
+        return null;
+    }
+
     findClassAttributeAtPosition(
         documentText: string,
         lineNumber: number
     ): { parsed: ParsedClassAttribute; lineIndex: number } | null {
         const lines = documentText.split('\n');
+        const lineStartOffsets: number[] = [0];
 
-        // First try the exact line
-        const currentLine = lines[lineNumber];
-        if (currentLine) {
-            const result = this.findClassAttribute(currentLine);
-            if (result) {
-                return { parsed: result, lineIndex: lineNumber };
-            }
+        for (let i = 1; i < lines.length; i++) {
+            lineStartOffsets.push(lineStartOffsets[i - 1] + lines[i - 1].length + 1);
         }
 
-        // Try constructing multi-line by looking back up to 5 lines
-        for (let startLine = Math.max(0, lineNumber - 5); startLine <= lineNumber; startLine++) {
+        const startLine = Math.max(0, lineNumber - 5);
+        const endLine = Math.min(lines.length - 1, lineNumber + 5);
+
+        for (let i = startLine; i <= endLine; i++) {
             let combined = '';
-            for (let i = startLine; i <= Math.min(lines.length - 1, lineNumber + 5); i++) {
-                combined += (i === startLine ? '' : ' ') + lines[i].trim();
-                const result = this.findClassAttribute(combined);
-                if (result) {
-                    return { parsed: result, lineIndex: startLine };
+            for (let j = i; j <= endLine; j++) {
+                if (j > i) {
+                    combined += '\n';
                 }
+                combined += lines[j];
             }
+
+            const result = this.findClassAttribute(combined);
+            if (!result) {
+                continue;
+            }
+
+            const converted: ParsedClassAttribute = {
+                ...result,
+                valueStartIndex: lineStartOffsets[i] + result.valueStartIndex,
+                valueEndIndex: lineStartOffsets[i] + result.valueEndIndex,
+            };
+
+            return { parsed: converted, lineIndex: i };
         }
 
         return null;
