@@ -3,7 +3,7 @@
   "displayName": "ChunkTail",
   "description": "Extract long Tailwind CSS class lists into clean, reusable @apply utility classes",
   "icon": "assets/chunktail-icon.png",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "paa-james",
   "engines": {
     "vscode": "^1.85.0"

@@ -43,7 +43,7 @@ export class ClassExtractionService {
             return '';
         }
 
-        const sanitized = this.sanitizeClassName(className);
+        const sanitized = this.normalizeClassName(className);
         return `.${sanitized} {\n  @apply ${tokens.join(' ')};\n}\n`;
     }
 
@@ -62,7 +62,7 @@ export class ClassExtractionService {
             return '';
         }
 
-        const sanitized = this.sanitizeClassName(className);
+        const sanitized = this.normalizeClassName(className);
         const lines: string[] = [`.${sanitized} {`];
 
         // Sort categories in a logical display order
@@ -117,7 +117,7 @@ export class ClassExtractionService {
      * Sanitizes a class name to be valid CSS.
      * Removes leading dots, replaces invalid characters with hyphens.
      */
-    private sanitizeClassName(name: string): string {
+    normalizeClassName(name: string): string {
         // Remove leading dots
         let sanitized = name.replace(/^\.+/, '');
         // Replace spaces and invalid chars with hyphens

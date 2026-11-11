@@ -3,6 +3,13 @@ import { TailwindClassParser } from './services/tailwindClassParser';
 import { ClassExtractionService } from './services/classExtractionService';
 import { DocumentEditService } from './services/documentEditService';
 import { ConfigService } from './services/configService';
+import { ExtractionPreviewService } from './services/extractionPreviewService';
+import {
+    ExtractionPlan,
+    inspectSelectorCollision,
+    isExtractionPlanCurrent,
+    StylesheetSnapshot,
+} from './services/extractionPlan';
 
 /**
  * Registers all extension commands.
@@ -11,12 +18,21 @@ export function registerCommands(context: vscode.ExtensionContext): void {
     const parser = new TailwindClassParser();
     const extractor = new ClassExtractionService();
     const editService = new DocumentEditService();
+    const previewService = new ExtractionPreviewService();
 
     // ── Main extraction command (with categorized grouping) ──────────────
     const extractCmd = vscode.commands.registerCommand(
         'shortail.extractClasses',
         async (document?: vscode.TextDocument, lineNumber?: number) => {
-            await executeExtraction(parser, extractor, editService, true, document, lineNumber);
+            await executeExtraction(
+                parser,
+                extractor,
+                editService,
+                previewService,
+                true,
+                document,
+                lineNumber
+            );
         }
     );
 
@@ -24,7 +40,15 @@ export function registerCommands(context: vscode.ExtensionContext): void {
     const quickExtractCmd = vscode.commands.registerCommand(
         'shortail.extractClassesInline',
         async (document?: vscode.TextDocument, lineNumber?: number) => {
-            await executeExtraction(parser, extractor, editService, false, document, lineNumber);
+            await executeExtraction(
+                parser,
+                extractor,
+                editService,
+                previewService,
+                false,
+                document,
+                lineNumber
+            );
         }
     );
 
@@ -38,11 +62,11 @@ async function executeExtraction(
     parser: TailwindClassParser,
     extractor: ClassExtractionService,
     editService: DocumentEditService,
+    previewService: ExtractionPreviewService,
     groupByCategory: boolean,
     document?: vscode.TextDocument,
     lineNumber?: number
 ): Promise<void> {
-    // Resolve editor and document
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showWarningMessage('No active editor found.');
@@ -52,142 +76,246 @@ async function executeExtraction(
     const doc = document || editor.document;
     const line = lineNumber ?? editor.selection.active.line;
 
-    // ── Step 1: Find class attribute ────────────────────────────────────
-    const lineText = doc.lineAt(line).text;
-    const positionMatch = parser.findClassAttributeAtPosition(doc.getText(), line);
-    const parsed = positionMatch?.parsed ?? parser.findClassAttribute(lineText);
+    extractionAttempt: while (true) {
+        if (line >= doc.lineCount) {
+            vscode.window.showWarningMessage('The source changed. Run extraction again at the class attribute.');
+            return;
+        }
 
-    if (!parsed) {
-        vscode.window.showWarningMessage(
-            'No class attribute found at the cursor location. Place your cursor on a line with class="..." or className="...".'
+        const lineText = doc.lineAt(line).text;
+        const positionMatch = parser.findClassAttributeAtPosition(doc.getText(), line);
+        const parsed = positionMatch?.parsed ?? parser.findClassAttribute(lineText);
+
+        if (!parsed) {
+            vscode.window.showWarningMessage(
+                'No class attribute found at the cursor location. Place your cursor on a line with class="..." or className="...".'
+            );
+            return;
+        }
+
+        const rangeStart = positionMatch
+            ? doc.positionAt(parsed.valueStartIndex)
+            : new vscode.Position(line, parsed.valueStartIndex);
+        const rangeEnd = positionMatch
+            ? doc.positionAt(parsed.valueEndIndex)
+            : new vscode.Position(line, parsed.valueEndIndex);
+        const sourceRange = new vscode.Range(rangeStart, rangeEnd);
+        const originalClassValue = doc.getText(sourceRange);
+        const sourceVersion = doc.version;
+        const tokens = parser.tokenize(parsed.classValue);
+        const config = ConfigService.getConfig();
+
+        if (tokens.length === 0) {
+            vscode.window.showInformationMessage('The class attribute is empty.');
+            return;
+        }
+
+        if (tokens.length < config.classThreshold) {
+            const proceed = await vscode.window.showInformationMessage(
+                `Only ${tokens.length} class(es) found (threshold: ${config.classThreshold}). Extract anyway?`,
+                'Yes',
+                'No'
+            );
+            if (proceed !== 'Yes') {
+                return;
+            }
+        }
+
+        let extractableTokens = tokens;
+        let preservedTokens: string[] = [];
+
+        if (config.preserveStateVariants) {
+            extractableTokens = tokens.filter((token) => !parser.hasStateVariant(token));
+            preservedTokens = tokens.filter((token) => parser.hasStateVariant(token));
+        }
+
+        if (extractableTokens.length === 0) {
+            vscode.window.showInformationMessage(
+                'No extractable Tailwind classes were found after preserving state and responsive variants.'
+            );
+            return;
+        }
+
+        let classNameInput = await promptForClassName();
+        if (!classNameInput) {
+            return;
+        }
+
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+            vscode.window.showErrorMessage('No workspace folder open.');
+            return;
+        }
+
+        const workspaceRoot = workspaceFolder.uri.fsPath;
+        const targetCssPath = await editService.promptForCssFile(
+            workspaceRoot,
+            config.targetCssFile
         );
-        return;
-    }
+        if (!targetCssPath) {
+            return;
+        }
 
-    // ── Step 2: Tokenize and validate ───────────────────────────────────
-    const tokens = parser.tokenize(parsed.classValue);
-    const config = ConfigService.getConfig();
+        while (true) {
+            const className = extractor.normalizeClassName(classNameInput.trim());
+            const categories = parser.categorize(extractableTokens);
+            const useGrouping = groupByCategory && config.groupByCategory;
+            const cssContent = extractor.generateOutput(
+                className,
+                extractableTokens,
+                categories,
+                useGrouping
+            );
+            let target: StylesheetSnapshot;
+            try {
+                target = await editService.inspectStylesheet(workspaceRoot, targetCssPath);
+            } catch (error) {
+                vscode.window.showErrorMessage(
+                    `Could not read ${targetCssPath}: ${errorMessage(error)}`
+                );
+                return;
+            }
+            const collision = inspectSelectorCollision(
+                target.content,
+                `.${className}`,
+                cssContent
+            );
 
-    if (tokens.length === 0) {
-        vscode.window.showInformationMessage('The class attribute is empty.');
-        return;
-    }
+            if (collision.kind === 'conflict') {
+                const choice = await vscode.window.showWarningMessage(
+                    `.${className} already exists in ${targetCssPath} with different CSS.`,
+                    'Choose another class name',
+                    'Cancel'
+                );
+                if (choice !== 'Choose another class name') {
+                    return;
+                }
 
-    if (tokens.length < config.classThreshold) {
-        const proceed = await vscode.window.showInformationMessage(
-            `Only ${tokens.length} class(es) found (threshold: ${config.classThreshold}). Extract anyway?`,
-            'Yes',
-            'No'
-        );
-        if (proceed !== 'Yes') {
+                classNameInput = await promptForClassName(className);
+                if (!classNameInput) {
+                    return;
+                }
+                continue;
+            }
+
+            const replacementClassValue = preservedTokens.length > 0
+                ? `${className} ${preservedTokens.join(' ')}`
+                : className;
+            const plan: ExtractionPlan = {
+                sourceDocument: doc,
+                sourceVersion,
+                sourceRange,
+                originalClassValue,
+                replacementClassValue,
+                className,
+                cssContent,
+                target,
+                selectorCollision: collision.kind === 'identical' ? 'identical' : 'none',
+                existingRule: collision.kind === 'identical' ? collision.existingRule : undefined,
+            };
+
+            let current: boolean;
+            try {
+                current = isExtractionPlanCurrent(plan);
+            } catch (error) {
+                vscode.window.showErrorMessage(
+                    `Could not verify the extraction preview: ${errorMessage(error)}`
+                );
+                return;
+            }
+
+            if (!current) {
+                vscode.window.showWarningMessage(
+                    'The source or stylesheet changed. Review the updated extraction preview.'
+                );
+                continue extractionAttempt;
+            }
+
+            if (!(await previewService.show(plan))) {
+                return;
+            }
+
+            try {
+                current = isExtractionPlanCurrent(plan);
+            } catch (error) {
+                vscode.window.showErrorMessage(
+                    `Could not verify the extraction preview: ${errorMessage(error)}`
+                );
+                return;
+            }
+
+            if (!current) {
+                vscode.window.showWarningMessage(
+                    'The source or stylesheet changed while the preview was open. Review the updated extraction preview.'
+                );
+                continue extractionAttempt;
+            }
+
+            let success: boolean;
+            try {
+                success = await editService.applyExtractionPlan(plan);
+            } catch (error) {
+                vscode.window.showErrorMessage(`Failed to apply extraction: ${errorMessage(error)}`);
+                return;
+            }
+
+            if (!success) {
+                try {
+                    if (!isExtractionPlanCurrent(plan)) {
+                        vscode.window.showWarningMessage(
+                            'The source or stylesheet changed while applying. Review the updated extraction preview.'
+                        );
+                        continue extractionAttempt;
+                    }
+                } catch (error) {
+                    vscode.window.showErrorMessage(
+                        `Could not verify the extraction preview: ${errorMessage(error)}`
+                    );
+                    return;
+                }
+                vscode.window.showErrorMessage('VS Code could not apply the extraction edits.');
+                return;
+            }
+
+            try {
+                await editService.openAndRevealCssFile(target.uri.fsPath);
+            } catch (error) {
+                vscode.window.showWarningMessage(
+                    `Extraction applied, but could not open ${targetCssPath}: ${errorMessage(error)}`
+                );
+            }
+
+            const stateInfo = preservedTokens.length > 0
+                ? ` (${preservedTokens.length} state variants kept inline)`
+                : '';
+            vscode.window.showInformationMessage(
+                `Extracted ${extractableTokens.length} Tailwind classes into .${className}${stateInfo}`
+            );
             return;
         }
     }
+}
 
-    // ── Step 3: Separate state variants if configured ───────────────────
-    let extractableTokens = tokens;
-    let preservedTokens: string[] = [];
-
-    if (config.preserveStateVariants) {
-        extractableTokens = tokens.filter((t) => !parser.hasStateVariant(t));
-        preservedTokens = tokens.filter((t) => parser.hasStateVariant(t));
-    }
-
-    if (extractableTokens.length === 0) {
-        vscode.window.showInformationMessage(
-            'No extractable Tailwind classes were found after preserving state and responsive variants.'
-        );
-        return;
-    }
-
-    // ── Step 4: Prompt for new class name ───────────────────────────────
-    const className = await vscode.window.showInputBox({
+async function promptForClassName(value?: string): Promise<string | undefined> {
+    return vscode.window.showInputBox({
         prompt: 'Enter a name for the new CSS utility class',
         placeHolder: 'e.g. card-header, btn-primary, nav-link',
-        validateInput: (value) => {
-            if (!value || value.trim().length === 0) {
+        value,
+        validateInput: (input) => {
+            if (!input || input.trim().length === 0) {
                 return 'Class name is required';
             }
-            if (/^[0-9]/.test(value.trim())) {
+            if (/^[0-9]/.test(input.trim())) {
                 return 'Class name cannot start with a number';
             }
-            if (/\s/.test(value.trim())) {
+            if (/\s/.test(input.trim())) {
                 return 'Class name cannot contain spaces';
             }
             return undefined;
         },
     });
+}
 
-    if (!className) {
-        return; // User cancelled
-    }
-
-    // ── Step 5: Get workspace root ──────────────────────────────────────
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!workspaceFolder) {
-        vscode.window.showErrorMessage('No workspace folder open.');
-        return;
-    }
-    const workspaceRoot = workspaceFolder.uri.fsPath;
-
-    // ── Step 6: Prompt for CSS file target ──────────────────────────────
-    const targetCssPath = await editService.promptForCssFile(
-        workspaceRoot,
-        config.targetCssFile
-    );
-
-    if (!targetCssPath) {
-        return; // User cancelled
-    }
-
-    // ── Step 7: Generate @apply CSS content ─────────────────────────────
-    const categories = parser.categorize(extractableTokens);
-    const useGrouping = groupByCategory && config.groupByCategory;
-    const cssContent = extractor.generateOutput(
-        className.trim(),
-        extractableTokens,
-        categories,
-        useGrouping
-    );
-
-    // ── Step 8: Replace class attribute in the editor ───────────────────
-    const newClassValue = preservedTokens.length > 0
-        ? `${className.trim()} ${preservedTokens.join(' ')}`
-        : className.trim();
-
-    const rangeStart = positionMatch
-        ? doc.positionAt(parsed.valueStartIndex)
-        : new vscode.Position(line, parsed.valueStartIndex);
-    const rangeEnd = positionMatch
-        ? doc.positionAt(parsed.valueEndIndex)
-        : new vscode.Position(line, parsed.valueEndIndex);
-
-    const success = await editService.replaceClassAttributeRange(
-        editor,
-        new vscode.Range(rangeStart, rangeEnd),
-        newClassValue
-    );
-
-    if (!success) {
-        vscode.window.showErrorMessage('Failed to replace the class attribute.');
-        return;
-    }
-
-    // ── Step 9: Append to stylesheet ────────────────────────────────────
-    const cssFilePath = await editService.appendToStylesheet(
-        workspaceRoot,
-        targetCssPath,
-        cssContent
-    );
-
-    // ── Step 10: Open CSS file and show success ─────────────────────────
-    await editService.openAndRevealCssFile(cssFilePath);
-
-    const classCount = extractableTokens.length;
-    const stateInfo = preservedTokens.length > 0
-        ? ` (${preservedTokens.length} state variants kept inline)`
-        : '';
-    vscode.window.showInformationMessage(
-        `✅ Extracted ${classCount} Tailwind classes into .${className.trim()}${stateInfo}`
-    );
+function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
 }
