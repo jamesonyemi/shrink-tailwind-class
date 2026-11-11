@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1] - 2026-11-11
+
+### Updated
+- Rebranded command and settings display names as ChunkTail.
+- Kept the `shortail.*` setting keys to preserve existing user preferences.
+- Updated the README and added an animated usage preview.
+
 ## [0.1.0] — 2026-02-12
 
 ### Added

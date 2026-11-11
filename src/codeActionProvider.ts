@@ -42,7 +42,7 @@ export class ShortailCodeActionProvider implements vscode.CodeActionProvider {
         _context: vscode.CodeActionContext,
         _token: vscode.CancellationToken
     ): vscode.CodeAction[] | undefined {
-        console.log(`[Shortail] Checking for code actions at line ${range.start.line}`);
+        console.log(`[ChunkTail] Checking for code actions at line ${range.start.line}`);
         const actions: vscode.CodeAction[] = [];
 
         // Check for a class attribute at the current cursor position.
@@ -52,7 +52,7 @@ export class ShortailCodeActionProvider implements vscode.CodeActionProvider {
         );
 
         if (!parsed) {
-            console.log(`[Shortail] No class attribute found at line ${range.start.line}`);
+            console.log(`[ChunkTail] No class attribute found at line ${range.start.line}`);
             return undefined;
         }
 
@@ -60,20 +60,20 @@ export class ShortailCodeActionProvider implements vscode.CodeActionProvider {
         const threshold = ConfigService.getClassThreshold();
 
         if (!this.parser.isLongClassList(tokens, threshold)) {
-            console.log(`[Shortail] Class list length ${tokens.length} is below threshold ${threshold}`);
+            console.log(`[ChunkTail] Class list length ${tokens.length} is below threshold ${threshold}`);
             return undefined;
         }
 
-        console.log(`[Shortail] Found ${tokens.length} classes on line ${range.start.line}. Suggesting extraction.`);
+        console.log(`[ChunkTail] Found ${tokens.length} classes on line ${range.start.line}. Suggesting extraction.`);
 
         // Offer the "Extract to @apply" action
         const extractAction = new vscode.CodeAction(
-            `Shortail: Extract ${tokens.length} classes to @apply`,
+            `ChunkTail: Extract ${tokens.length} classes to @apply`,
             vscode.CodeActionKind.RefactorExtract
         );
         extractAction.command = {
             command: 'shortail.extractClasses',
-            title: 'Extract Shortail Classes to @apply',
+            title: 'Extract ChunkTail Classes to @apply',
             arguments: [document, range.start.line],
         };
         extractAction.isPreferred = true;
@@ -81,12 +81,12 @@ export class ShortailCodeActionProvider implements vscode.CodeActionProvider {
 
         // Offer the quick extract (no grouping) action
         const quickAction = new vscode.CodeAction(
-            `Shortail: Quick Extract ${tokens.length} classes (flat)`,
+            `ChunkTail: Quick Extract ${tokens.length} classes (flat)`,
             vscode.CodeActionKind.Refactor
         );
         quickAction.command = {
             command: 'shortail.extractClassesInline',
-            title: 'Quick Extract Shortail Classes (flat)',
+            title: 'Quick Extract ChunkTail Classes (flat)',
             arguments: [document, range.start.line],
         };
         actions.push(quickAction);

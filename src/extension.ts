@@ -10,7 +10,7 @@ import { registerCommands } from './commands';
  * Registers the Code Action provider and commands.
  */
 export function activate(context: vscode.ExtensionContext): void {
-    console.log('Shortail extension is now active.');
+    console.log('ChunkTail extension is now active.');
 
     // ── Register Code Action Provider for all supported languages ──────
     const documentSelectors: vscode.DocumentSelector = SUPPORTED_LANGUAGES.map(
@@ -35,8 +35,8 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.StatusBarAlignment.Right,
         100
     );
-    statusBarItem.text = '$(symbol-class) Shortail';
-    statusBarItem.tooltip = 'Shortail — Extract utility classes';
+    statusBarItem.text = '$(symbol-class) ChunkTail';
+    statusBarItem.tooltip = 'ChunkTail — Extract utility classes';
     statusBarItem.command = 'shortail.extractClasses';
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
@@ -46,5 +46,5 @@ export function activate(context: vscode.ExtensionContext): void {
  * Called when the extension is deactivated.
  */
 export function deactivate(): void {
-    console.log('Shortail extension deactivated.');
+    console.log('ChunkTail extension deactivated.');
 }

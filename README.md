@@ -2,18 +2,20 @@
 
 ChunkTail (search keyword: **chunktail**) is a VS Code extension that extracts long Tailwind CSS utility lists into reusable CSS `@apply` rules.
 
+![ChunkTail demo: extract utility classes into an @apply rule](assets/chunktail-demo.gif)
+
 ## Features
 
 - Suggests extraction with a lightbulb code action.
-- Extracts on demand with **Ctrl+Alt+T** (macOS: **Cmd+Alt+T**).
-- Groups extracted utilities by category, or uses a flat rule with Quick Extract.
+- Extracts on demand with **Ctrl+Alt+T** (macOS: **Cmd+Alt+T**) or `ChunkTail: Extract to @apply`.
+- Groups utilities by category, or uses the flat `ChunkTail: Quick Extract (no grouping)` command.
 - Lets you choose the destination CSS file and creates it if needed.
 - Can keep state and responsive variants such as `hover:` and `md:` in the markup.
 
 ## How to use
 
 1. Open a supported file and place the cursor on a line containing a `class` or `className` attribute.
-2. Select the lightbulb action, press the shortcut, or run **Extract to @apply** from the Command Palette.
+2. Select the lightbulb action, press the shortcut, or run **ChunkTail: Extract to @apply** from the Command Palette.
 3. Enter a CSS class name and choose the destination stylesheet.
 
 By default, ChunkTail suggests extraction when it finds at least five classes. If you run the command below that threshold, you can still choose to proceed.
@@ -55,6 +57,8 @@ In the selected CSS file:
 | `shortail.targetCssFile` | `src/styles/components.css` | Default destination for generated rules |
 | `shortail.groupByCategory` | `true` | Add category comments to generated rules |
 | `shortail.preserveStateVariants` | `false` | Keep state and responsive variants in the markup |
+
+The `shortail.*` keys retain the original Shortail prefix so existing user settings continue to work.
 
 ## Supported languages
 

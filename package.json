@@ -3,7 +3,7 @@
   "displayName": "ChunkTail",
   "description": "Extract long Tailwind CSS class lists into clean, reusable @apply utility classes",
   "icon": "assets/chunktail-icon.png",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "paa-james",
   "engines": {
     "vscode": "^1.85.0"
@@ -44,11 +44,11 @@
     "commands": [
       {
         "command": "shortail.extractClasses",
-        "title": "Shortail: Extract to @apply"
+        "title": "ChunkTail: Extract to @apply"
       },
       {
         "command": "shortail.extractClassesInline",
-        "title": "Shortail: Quick Extract (no grouping)"
+        "title": "ChunkTail: Quick Extract (no grouping)"
       }
     ],
     "keybindings": [
@@ -60,7 +60,7 @@
       }
     ],
     "configuration": {
-      "title": "Shortail",
+      "title": "ChunkTail",
       "properties": {
         "shortail.classThreshold": {
           "type": "number",
