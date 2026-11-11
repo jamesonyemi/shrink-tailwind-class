@@ -1,6 +1,6 @@
-# Shortail 🪄
+<h1><img src="assets/chunktail-logo.png" alt="ChunkTail" width="128"></h1>
 
-> Extract long, unwieldy Tailwind CSS class lists into clean, reusable `@apply` utility classes — right from your editor.
+> Instantly clean up your markup by extracting long, unwieldy Tailwind CSS and custom class lists into reusable `@apply` rules directly from your editor. Keep your templates readable and maintainable with zero context switching..
 
 ![VS Code](https://img.shields.io/badge/VS%20Code-1.85+-blue?logo=visual-studio-code)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue?logo=typescript)
