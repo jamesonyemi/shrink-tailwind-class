@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2] - 2026-11-11
+
+### Added
+- Preview the markup and generated CSS before applying an extraction.
+- Revalidate source and stylesheet changes before applying the preview.
+- Detect existing selector conflicts and reuse only identical rules.
+
 ## [0.1.1] - 2026-11-11
 
 ### Updated

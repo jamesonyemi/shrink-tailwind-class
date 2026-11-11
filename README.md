@@ -8,6 +8,7 @@ ChunkTail (search keyword: **chunktail**) is a VS Code extension that extracts l
 
 - Suggests extraction with a lightbulb code action.
 - Extracts on demand with **Ctrl+Alt+T** (macOS: **Cmd+Alt+T**) or `ChunkTail: Extract to @apply`.
+- Previews the markup change and generated CSS before applying it.
 - Groups utilities by category, or uses the flat `ChunkTail: Quick Extract (no grouping)` command.
 - Lets you choose the destination CSS file and creates it if needed.
 - Can keep state and responsive variants such as `hover:` and `md:` in the markup.
