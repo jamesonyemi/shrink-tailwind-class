@@ -1,153 +1,86 @@
 <h1><img src="assets/chunktail-logo.png" alt="ChunkTail" width="128"></h1>
 
-> Instantly clean up your markup by extracting long, unwieldy Tailwind CSS and custom class lists into reusable `@apply` rules directly from your editor. Keep your templates readable and maintainable with zero context switching..
+ChunkTail (search keyword: **chunktail**) is a VS Code extension that extracts long Tailwind CSS utility lists into reusable CSS `@apply` rules.
 
-![VS Code](https://img.shields.io/badge/VS%20Code-1.85+-blue?logo=visual-studio-code)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue?logo=typescript)
-![License](https://img.shields.io/badge/license-MIT-green)
+## Features
 
----
+- Suggests extraction with a lightbulb code action.
+- Extracts on demand with **Ctrl+Alt+T** (macOS: **Cmd+Alt+T**).
+- Groups extracted utilities by category, or uses a flat rule with Quick Extract.
+- Lets you choose the destination CSS file and creates it if needed.
+- Can keep state and responsive variants such as `hover:` and `md:` in the markup.
 
-> 📐 **For developers:** See [ARCHITECTURE.md](./ARCHITECTURE.md) for design details and [WIKI_INSTALL_AND_ACTIVATE.md](./WIKI_INSTALL_AND_ACTIVATE.md) for local setup instructions.
+## How to use
 
----
+1. Open a supported file and place the cursor on a line containing a `class` or `className` attribute.
+2. Select the lightbulb action, press the shortcut, or run **Extract to @apply** from the Command Palette.
+3. Enter a CSS class name and choose the destination stylesheet.
 
-## 📺 Demo
+By default, ChunkTail suggests extraction when it finds at least five classes. If you run the command below that threshold, you can still choose to proceed.
 
-[Watch the Demo on TikTok](https://www.tiktok.com/@fxbro15/video/7606020622371622165)
+### Example
 
----
-
-## ✨ Features
-
-| Feature | Description |
-|---------|-------------|
-| **💡 Code Action (Light Bulb)** | Automatically detects long class attributes and suggests extraction |
-| **📋 Command Palette** | Run `Shortail: Extract to @apply` from anywhere |
-| **⌨️ Keyboard Shortcut** | `Ctrl+Alt+T` (Mac: `Cmd+Alt+T`) for instant extraction |
-| **🗂️ Smart Categorization** | Groups classes by purpose (Layout, Spacing, Colors, etc.) with comments |
-| **🎯 State Variant Handling** | Optionally keeps `hover:`, `focus:`, `md:` variants inline |
-| **📁 Auto File Management** | Creates directories and CSS files as needed |
-
----
-
-## 📖 How It Works
-
-1. **Place your cursor** on a line with a long `class="..."` or `className="..."` attribute
-2. **Click the 💡 light bulb** that appears, or press `Ctrl+Alt+T`
-3. **Enter a class name** (e.g., `card-header`)
-4. **Choose a CSS file** (or use the configured default)
-5. ✅ Your classes are extracted into a clean `@apply` rule!
-
-### Before
+Before:
 
 ```html
-<div class="flex items-center justify-between p-4 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-700 transition-all duration-300">
-  Hello World
-</div>
+<div class="flex p-4 bg-blue-500 text-white">Hello</div>
 ```
 
-### After
+After:
 
-**HTML:**
 ```html
-<div class="card-header">
-  Hello World
-</div>
+<div class="card-header">Hello</div>
 ```
 
-**CSS** (`src/styles/components.css`):
+In the selected CSS file:
+
 ```css
 .card-header {
   /* Layout */
   @apply flex;
-
-  /* Flexbox & Grid */
-  @apply items-center justify-between;
 
   /* Spacing */
   @apply p-4;
 
   /* Colors */
   @apply bg-blue-500 text-white;
-
-  /* Borders & Radius */
-  @apply rounded-lg;
-
-  /* Effects */
-  @apply shadow-md;
-
-  /* Transitions & Animation */
-  @apply transition-all duration-300;
-
-  /* States */
-  @apply hover:bg-blue-700;
 }
 ```
 
----
-
-## ⚙️ Configuration
+## Settings
 
 | Setting | Default | Description |
-|---------|---------|-------------|
-| `shortail.classThreshold` | `5` | Minimum classes to trigger suggestion |
-| `shortail.targetCssFile` | `src/styles/components.css` | Default CSS file for extracted rules |
-| `shortail.groupByCategory` | `true` | Group classes by category with comments |
-| `shortail.preserveStateVariants` | `false` | Keep `hover:`, `focus:`, etc. inline |
+| --- | --- | --- |
+| `shortail.classThreshold` | `5` | Minimum class count for a code-action suggestion |
+| `shortail.targetCssFile` | `src/styles/components.css` | Default destination for generated rules |
+| `shortail.groupByCategory` | `true` | Add category comments to generated rules |
+| `shortail.preserveStateVariants` | `false` | Keep state and responsive variants in the markup |
 
----
+## Supported languages
 
-## 🗣️ Supported Languages
+HTML, JSX, TSX, Vue, Svelte, Astro, PHP, ERB, and Edge.
 
-HTML · JSX · TSX · Vue · Svelte · Astro · PHP · ERB · Edge
+## Install and develop
 
----
+Search for **ChunkTail** in the VS Code Extensions view to install it.
 
-## 🚀 Getting Started
-
-### From Source
+To run the extension from source:
 
 ```bash
-git clone <your-repo-url>
-cd shortail
+git clone https://github.com/jamesonyemi/shrink-tailwind-class.git
+cd shrink-tailwind-class
 npm install
 npm run compile
 ```
 
-Then press **F5** in VS Code to launch the Extension Development Host.
-
-### Package as VSIX
+Press **F5** in VS Code to launch the Extension Development Host. To build a VSIX package, run:
 
 ```bash
 npx @vscode/vsce package
 ```
 
----
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for implementation details.
 
-## 📂 Project Structure
-
-```
-shortail/
-├── src/
-│   ├── extension.ts              # Entry point
-│   ├── codeActionProvider.ts      # Light-bulb Code Actions
-│   ├── commands.ts                # Command implementations
-│   ├── services/
-│   │   ├── configService.ts       # Configuration reader
-│   │   ├── tailwindClassParser.ts # Class detection & categorization
-│   │   ├── classExtractionService.ts  # @apply rule generation
-│   │   └── documentEditService.ts     # File edits & prompts
-│   └── test/
-│       ├── tailwindClassParser.test.ts
-│       └── classExtractionService.test.ts
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
----
-
-## 📄 License
+## License
 
 MIT
